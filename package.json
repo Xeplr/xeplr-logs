@@ -7,7 +7,7 @@
   "keywords": ["logs", "logging", "session", "text", "rotation"],
   "author": "xeplr",
   "license": "MIT",
-  "repository": { "type": "git", "url": "https://github.com/xeplr/xeplr" },
+  "repository": { "type": "git", "url": "https://github.com/Xeplr/xeplr-logs" },
   "publishConfig": { "access": "public" },
   "dependencies": {}
 }

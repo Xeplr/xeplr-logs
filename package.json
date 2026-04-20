@@ -1,0 +1,13 @@
+{
+  "name": "@xeplr/logs",
+  "version": "1.0.0",
+  "description": "Text logger with 5 levels, daily rotation, session IDs, and email alerts",
+  "main": "index.js",
+  "files": ["index.js", "lib/"],
+  "keywords": ["logs", "logging", "session", "text", "rotation"],
+  "author": "xeplr",
+  "license": "MIT",
+  "repository": { "type": "git", "url": "https://github.com/xeplr/xeplr" },
+  "publishConfig": { "access": "public" },
+  "dependencies": {}
+}

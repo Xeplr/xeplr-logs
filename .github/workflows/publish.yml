@@ -19,9 +19,29 @@ jobs:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
 
-      - run: npm install --omit=dev --ignore-scripts
-        if: hashFiles('package-lock.json') != ''
+      # If this version was already published (e.g. by a local `npm publish`),
+      # skip cleanly instead of failing the workflow.
+      - name: Skip if version already on npm
+        id: check
+        run: |
+          NAME=$(node -p "require('./package.json').name")
+          VER=$(node -p "require('./package.json').version")
+          if npm view "$NAME@$VER" version >/dev/null 2>&1; then
+            echo "already-published=true" >> $GITHUB_OUTPUT
+            echo "$NAME@$VER already on npm — skipping."
+          else
+            echo "already-published=false" >> $GITHUB_OUTPUT
+          fi
 
-      - run: npm publish --provenance --access public
+      - name: Install (if lockfile present)
+        if: steps.check.outputs.already-published == 'false'
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci --ignore-scripts
+          fi
+
+      - name: Publish
+        if: steps.check.outputs.already-published == 'false'
+        run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

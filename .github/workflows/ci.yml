@@ -1,0 +1,53 @@
+# Tests and coverage on every push and pull request.
+#
+# Until now tests ran only at release time, which is far too late: a broken
+# main sat green until someone tried to publish. This runs them on every push.
+#
+# Coverage comes from Node's own --experimental-test-coverage, written as lcov
+# and uploaded to Codecov. No Jest, no nyc, no c8 — Codecov's setup page offers
+# a Jest snippet because Jest is picked in its dropdown, but it ingests lcov
+# from any source. The 30 test files here are written against node:test and
+# would not run under Jest at all.
+#
+# Node 22, not 20: the lcov test reporter does not exist before 22.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install (if lockfile present)
+        run: |
+          if [ -f package-lock.json ]; then npm ci --ignore-scripts; fi
+
+      - name: Test with coverage
+        run: |
+          if ! node -e "process.exit((require('./package.json').scripts||{}).test ? 0 : 1)"; then
+            echo "::warning::No test script — nothing verified."
+            exit 0
+          fi
+          # Mirrors the package's own test script, but adds coverage and lcov.
+          node --test --experimental-test-coverage \
+               --test-reporter=lcov --test-reporter-destination=coverage.info \
+               --test-reporter=spec --test-reporter-destination=stdout \
+               test/*.test.js
+
+      - name: Upload coverage to Codecov
+        if: hashFiles('coverage.info') != ''
+        uses: codecov/codecov-action@v4
+        with:
+          files: coverage.info
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false

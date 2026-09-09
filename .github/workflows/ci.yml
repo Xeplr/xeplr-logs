@@ -28,9 +28,16 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Install (if lockfile present)
+      # Always install. The first version only installed when a lockfile was
+      # present, so xeplr-base-apis and xeplr-email — which have none — ran
+      # their tests with no dependencies at all and failed on missing modules.
+      - name: Install
         run: |
-          if [ -f package-lock.json ]; then npm ci --ignore-scripts; fi
+          if [ -f package-lock.json ]; then
+            npm ci --ignore-scripts || npm install --ignore-scripts
+          else
+            npm install --ignore-scripts
+          fi
 
       - name: Test with coverage
         run: |

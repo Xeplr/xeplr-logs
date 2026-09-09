@@ -52,6 +52,20 @@ jobs:
             npm ci --ignore-scripts
           fi
 
+      # Tests run BEFORE the version bump, so a failure leaves nothing bumped,
+      # tagged, published or pushed — the same clean-rollback property the
+      # publish step already relies on.
+      #
+      # A package with no test script does not fail the release, but it does
+      # emit a warning, so "nothing was verified" is visible rather than silent.
+      - name: Test
+        run: |
+          if node -e "process.exit((require('./package.json').scripts||{}).test ? 0 : 1)"; then
+            npm test
+          else
+            echo "::warning::No test script in package.json — nothing was verified before publishing."
+          fi
+
       - name: Bump version + create tag
         run: |
           npm version ${{ inputs.bump }} -m "Release v%s"

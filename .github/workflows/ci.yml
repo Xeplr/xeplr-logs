@@ -9,7 +9,8 @@
 # from any source. The 30 test files here are written against node:test and
 # would not run under Jest at all.
 #
-# Node 22, not 20: the lcov test reporter does not exist before 22.
+# Node 24: the lcov test reporter does not exist before 22, and GitHub is
+# deprecating Node 20 on runners.
 
 name: CI
 
@@ -26,7 +27,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24'
 
       # Always install. The first version only installed when a lockfile was
       # present, so xeplr-base-apis and xeplr-email — which have none — ran

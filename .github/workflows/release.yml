@@ -72,10 +72,16 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Install (if lockfile present)
+      # Always install. Installing only when a lockfile exists meant
+      # xeplr-base-apis and xeplr-email — which have none — ran their tests
+      # with no dependencies at all, so every release of those two failed at
+      # the Test gate on missing modules.
+      - name: Install
         run: |
           if [ -f package-lock.json ]; then
-            npm ci --ignore-scripts
+            npm ci --ignore-scripts || npm install --ignore-scripts
+          else
+            npm install --ignore-scripts
           fi
 
       # Tests run BEFORE the version bump, so a failure leaves nothing bumped,

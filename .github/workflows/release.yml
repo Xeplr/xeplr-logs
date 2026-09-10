@@ -83,6 +83,19 @@ jobs:
           else
             npm install --ignore-scripts
           fi
+          # `npm install` rewrites package-lock.json whenever it disagrees with
+          # package.json — which is exactly when the `npm ci` above failed. That
+          # leaves the tree dirty, and `npm version` refuses to run in a dirty
+          # tree ("Git working directory not clean"), so the release dies at the
+          # bump step.
+          #
+          # Commit the drift rather than discarding it: the lockfile genuinely
+          # was stale, and throwing the fix away would fail the same way on the
+          # next push.
+          if [ -n "$(git status --porcelain)" ]; then
+            git add -A
+            git commit -m "chore: sync package-lock.json"
+          fi
 
       # Tests run BEFORE the version bump, so a failure leaves nothing bumped,
       # tagged, published or pushed — the same clean-rollback property the

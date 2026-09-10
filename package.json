@@ -1,6 +1,6 @@
 {
   "name": "@xeplr/logs",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Text logger with 5 levels, daily rotation, session IDs, and email alerts",
   "main": "index.js",
   "files": [

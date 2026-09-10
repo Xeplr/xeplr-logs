@@ -1,18 +1,37 @@
-# Manual release — bumps version, publishes to npm, pushes commit + tag.
+# Release: bumps version, publishes to npm, pushes commit + tag.
 #
-# Run: Actions → Release → Run workflow → pick patch/minor/major.
+# Runs automatically on every push to main (patch bump), and manually from
+# Actions → Release → Run workflow when you want minor or major.
 #
 # Order matters:
-#   1. bump package.json + create local tag (npm version)
-#   2. publish to npm            ← if this fails, nothing is pushed → clean rollback
-#   3. push commit + tag         ← record of the release
+#   1. test                      ← a failure here means nothing is bumped at all
+#   2. bump package.json + create local tag (npm version)
+#   3. publish to npm            ← if this fails, nothing is pushed → clean rollback
+#   4. push commit + tag         ← record of the release
 #
-# The tag push does NOT re-trigger publish.yml because pushes made with
-# GITHUB_TOKEN don't fan out to other workflows (GitHub anti-loop rule).
+# ── why this does not loop forever ──────────────────────────────────────────
+# Step 4 pushes a "Release vX" commit to main, which is itself a push to main.
+# Two things stop that becoming an infinite release loop:
+#
+#   1. GitHub does not fan out workflows for pushes made with GITHUB_TOKEN.
+#      This is the same anti-loop rule that already stops the tag push
+#      re-triggering publish.yml.
+#   2. Belt and braces: the job is skipped when the head commit is itself a
+#      release commit. If anyone ever swaps GITHUB_TOKEN for a PAT — which does
+#      fan out — rule 1 silently stops applying and only this guard remains.
+#
+# `[skip release]` anywhere in a commit message also skips it, for a README or
+# comment change not worth a version.
+#
+# Concurrency is serialised, not cancelled: two quick pushes must release one
+# after the other. Cancelling would abandon a run that had already published to
+# npm but not yet pushed its tag, leaving git and the registry disagreeing.
 
 name: Release
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       bump:
@@ -25,9 +44,16 @@ on:
           - minor
           - major
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   release:
     runs-on: ubuntu-latest
+    if: >-
+      !startsWith(github.event.head_commit.message, 'Release v') &&
+      !contains(github.event.head_commit.message, '[skip release]')
     permissions:
       contents: write
       id-token: write
@@ -68,7 +94,7 @@ jobs:
 
       - name: Bump version + create tag
         run: |
-          npm version ${{ inputs.bump }} -m "Release v%s"
+          npm version ${{ inputs.bump || 'patch' }} -m "Release v%s"
           echo "NEW_VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_ENV
 
       - name: Publish to npm
